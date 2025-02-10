@@ -1,0 +1,115 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'README.md'
+      - 'helm/**'
+
+jobs:
+  build:
+    name: Build, Test & Push Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code ✅
+        uses: actions/checkout@v4
+
+      - name: Set up Go ✅
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21"
+
+      - name: Cache Go Modules ✅ (Speed Up Workflow)
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install Dependencies ✅
+        run: go mod tidy
+
+      - name: Build ✅
+        run: go build -v ./...
+
+      - name: Run Tests ✅
+        run: go test -v ./...
+
+      - name: Format & Lint Check ✅
+        run: go fmt ./...
+
+      - name: Set up Docker Buildx ✅
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub ✅ (Using GitHub Secrets)
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Build & Push Docker Image ✅
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/webapp-demo:latest,${{ secrets.DOCKER_HUB_USERNAME }}/webapp-demo:${{ github.run_number }}
+
+  code-quality:
+    name: Code Quality & Security Scan
+    runs-on: ubuntu-latest
+    needs: build  # ✅ Runs AFTER the build job
+
+    steps:
+      - name: Checkout code ✅
+        uses: actions/checkout@v4
+
+      - name: Install golangci-lint ✅
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $HOME/bin v1.54.2
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Run Linter ✅
+        run: golangci-lint run ./...
+
+      - name: Security Scan with gosec ✅
+        uses: securego/gosec-action@v1
+        with:
+          args: ./...
+
+      - name: Code Coverage Report ✅
+        run: go test -coverprofile=coverage.out ./...
+
+      - name: Upload Code Coverage Report ✅
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+
+  update-helm:
+    name: Update Helm Chart with New Image Tag
+    runs-on: ubuntu-latest
+    needs: [build, code-quality]  # ✅ Ensures this runs last
+
+    steps:
+      - name: Checkout code ✅
+        uses: actions/checkout@v4
+
+      - name: Update Helm Chart Image Tag ✅ (Automation)
+        run: |
+          set -e  # ✅ Stop on error
+          sed -i "s|tag: .*|tag: \"${{ github.run_number }}\"|g" helm/go-web-app-chart/values.yaml
+
+      - name: Commit and Push Changes ✅ (Using GitHub Token)
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}  # ✅ Securely use GitHub Token
+        run: |
+          git config --global user.email "aadarshbaloriya661@gmail.com"
+          git config --global user.name "Aadarsh Baloriya"
+          git add helm/go-web-app-chart/values.yaml
+          git commit -m "Update Helm chart with new Docker image tag"
+          git push https://x-access-token:${GH_TOKEN}@github.com/aadarsh-ui/go-web-app.git main
+#testing third
