@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: go-app-namespace
+  labels:
+    role: frontend
+    env: demo
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      role: frontend
+  template:
+    metadata:
+      labels:
+        role: frontend
+    spec:
+      securityContext:  # 🔒 Add pod security context
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      imagePullSecrets:
+        - name: docker-hub-secret
+      containers:
+        - name: frontend
+          image: 5464534563/webapp-demo@sha256:a0b8e0c1dcae2ccff50b34cb479d794a2c6092f72e03764ceb4681cadf7503d7  # 🔒 Use SHA256 digest instead of `:04`
+          imagePullPolicy: Always  # 🔒 Ensures latest image is used when using tags
+          securityContext:  # 🔒 Drop unnecessary privileges
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - containerPort: 8080
+          resources:  # ✅ Set resource limits
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "200m"
+          livenessProbe:  # ✅ Add liveness probe
+            httpGet:
+              path: /home
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            failureThreshold: 6  # ✅ Allows 6 failures (6 * 5s = 30s) before restarting
+          readinessProbe:  # ✅ Add readiness probe
+            httpGet:
+              path: /home
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5

@@ -1,0 +1,4 @@
+image:
+  repository: 5464534563/webapp-demo
+  pullPolicy: IfNotPresent
+  tag: "05"

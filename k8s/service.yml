@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: go-app-namespace
+spec:
+  type: ClusterIP
+  selector:
+    role: frontend
+  ports:
+    - port: 8080
+      targetPort: 8080  # Explicitly set this
+      protocol: TCP
+

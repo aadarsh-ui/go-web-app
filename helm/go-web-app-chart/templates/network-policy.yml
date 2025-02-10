@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-policy
+  namespace: go-app-namespace
+spec:
+  podSelector:
+    matchLabels:
+      role: frontend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              role: backend  # ✅ Only allow backend pods to talk to frontend
+      ports:
+        - protocol: TCP
+          port: 8080
