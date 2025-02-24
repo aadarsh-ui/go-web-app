@@ -51,13 +51,12 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      - name: Build & Push Docker Image ✅
+      - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
-          context: .
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/webapp-demo:latest,${{ secrets.DOCKER_HUB_USERNAME }}/webapp-demo:${{ github.run_number }}
-
+          tags: aadarsh-ui/webapp-demo:latest, aadarsh-ui/webapp-demo:2
+  
   code-quality:
     name: Code Quality & Security Scan
     runs-on: ubuntu-latest
