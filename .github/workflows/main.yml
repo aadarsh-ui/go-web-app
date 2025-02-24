@@ -55,7 +55,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           push: true
-          tags: aadarsh-ui/webapp-demo:latest, aadarsh-ui/webapp-demo:2
+          tags: 5464534563/webapp-demo:latest, 5464534563/webapp-demo:2
   
   code-quality:
     name: Code Quality & Security Scan
